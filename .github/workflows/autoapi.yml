@@ -3,21 +3,20 @@ name: Auto Api Secret
 
 on: 
   release:
-    types: [published]
+    types: [published, created, edited]
   push:
     tags:
-    - 'v*'
-  #  branches: 
-  #    - master
+      - 'v*'
+    branches: 
+      - master
   schedule:
-    - cron: '12 */6 * * *'
-  watch:
-    types: [started]
+    - cron: '0 0-10 * * *'
+  workflow_dispatch:
+    inputs:
    
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.repository.owner.id == github.event.sender.id  # 自己点的 start
     steps:
     - name: Checkout
       uses: actions/checkout@master
@@ -25,9 +24,10 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.8
-    - name: Install requests #安装requests
+    - name: Install requirements
       run: |
         pip install requests
+        pip install telepot
     - name: Read config from secrets  #读取机密
       env: 
         CONFIG_ID: ${{ secrets.CONFIG_ID }} # secrets_id 提供
@@ -41,7 +41,7 @@ jobs:
     - name: Test Api #Api调用
       run: | 
         echo `date +"%Y-%m-%d %H:%M:%S"` begin > time.log
-        python 2.py
+        python 2.py ${{ secrets.TELEBOT_TOKEN }} ${{ secrets.CHAT_ID }}
     - name: Delete secrets config #删除机密
       run: | 
         rm -f 2.py
@@ -49,8 +49,8 @@ jobs:
         rm -f configkey.txt    
     - name: Commit #上传新的refresh_token到仓库
       run: |
-        git config --global user.email AutoupdateRobot@email.com
-        git config --global user.name AutoupdateRobot
+        git config --global user.email '${{ secrets.EMAIL }}'
+        git config --global user.name ccknbc
         git add .
         git commit -m "update new refresh_token" -a
     - name: Push changes
